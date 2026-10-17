@@ -1,0 +1,66 @@
+# Builds the NovaFX mod (.jar) and Nova Launcher (.exe) on GitHub — no local JDK or Go needed.
+# Open Actions → "build" → the latest run → Artifacts → "nova".
+#
+# First run only: if nova.tar.xz.b64 exists in the repository root (the whole project pasted as one
+# base64 text file through the web editor), it is unpacked into the repository and committed.
+name: build
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Unpack project (first run only)
+        if: hashFiles('nova.tar.xz.b64') != ''
+        run: |
+          tr -d '\r\n ' < nova.tar.xz.b64 | base64 -d | tar -xJf - --exclude='./.github'
+          git rm -q nova.tar.xz.b64
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A -- . ':!.github'
+          git commit -m "Add Nova Launcher and NovaFX sources"
+          git push
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.7.1'
+
+      - name: Build mod
+        working-directory: mod
+        run: gradle build --no-daemon
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Test and build launcher
+        working-directory: launcher
+        env:
+          GOFLAGS: -mod=mod
+        run: |
+          go test ./...
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -H windowsgui" -o ../dist/NovaLauncher.exe .
+
+      - name: Collect files
+        run: |
+          cp mod/build/libs/novafx-*.jar dist/
+          rm -f dist/*-sources.jar
+          ls -la dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nova
+          path: dist/
