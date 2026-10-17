@@ -1,0 +1,16 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "dev.nova.fx.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"MinecraftAccessor",
+		"RealmsAvailabilityAccessor",
+		"RealmsClientAccessor",
+		"ReportingContextAccessor",
+		"SplashManagerAccessor"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

@@ -1,0 +1,27 @@
+{
+	"schemaVersion": 1,
+	"id": "novafx",
+	"version": "${version}",
+	"name": "NovaFX",
+	"description": "Hit effects, target marker, song lyrics overlay and in-game account switching. Settings: Right Shift.",
+	"authors": [
+		"Nova"
+	],
+	"license": "MIT",
+	"icon": "assets/novafx/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"dev.nova.fx.NovaFX"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*"
+	},
+	"mixins": [
+		"novafx.mixins.json"
+	]
+}

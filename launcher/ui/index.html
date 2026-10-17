@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nova Launcher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Unbounded:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sky: #15122c;
+  --sky-2: #1c1839;
+  --raise: #252047;
+  --line: #352f61;
+  --ink: #ece9ff;
+  --muted: #9a94c4;
+  --star: #ffc857;
+  --star-ink: #2a1d00;
+  --violet: #9b7bff;
+  --danger: #ff6b7a;
+  --ok: #6fe0a8;
+  --r-s: 8px;
+  --r-l: 18px;
+  --display: "Unbounded", "Segoe UI", sans-serif;
+  --body: "Manrope", "Segoe UI", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--sky);
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, #ffffff55 50%, transparent 51%),
+    radial-gradient(1px 1px at 72% 9%, #ffffff40 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 88% 42%, #ffffff35 50%, transparent 51%),
+    radial-gradient(1px 1px at 33% 77%, #ffffff30 50%, transparent 51%),
+    radial-gradient(900px 500px at 85% -10%, #3b2a7a55, transparent 70%);
+  color: var(--ink);
+  font: 15px/1.5 var(--body);
+  overflow: hidden;
+  user-select: none;
+}
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--star); outline-offset: 2px; }
+.app { display: grid; grid-template-columns: 208px 1fr; height: 100vh; }
+
+/* rail */
+.rail { display: flex; flex-direction: column; gap: 4px; padding: 22px 14px; border-right: 1px solid var(--line); background: #120f26cc; }
+.brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 22px; }
+.brand svg { flex: none; }
+.brand b { font: 700 19px/1 var(--display); letter-spacing: .01em; }
+.nav { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 0; border-radius: var(--r-s); background: none; color: var(--muted); cursor: pointer; text-align: left; font-weight: 600; }
+.nav svg { width: 18px; height: 18px; flex: none; }
+.nav:hover { color: var(--ink); background: #ffffff08; }
+.nav[aria-current="page"] { color: var(--ink); background: var(--raise); box-shadow: inset 3px 0 0 var(--star); }
+.rail .spacer { flex: 1; }
+.rail .who { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: var(--r-s); background: #ffffff06; font-size: 13px; }
+.avatar { width: 32px; height: 32px; border-radius: 6px; background: var(--raise); image-rendering: pixelated; flex: none; }
+.who small { display: block; color: var(--muted); }
+
+main { overflow-y: auto; padding: 34px 40px 40px; }
+.page { display: none; max-width: 980px; }
+.page.on { display: block; }
+h1 { font: 700 30px/1.15 var(--display); margin: 0 0 6px; }
+h2 { font: 600 17px/1.3 var(--display); margin: 34px 0 14px; }
+p.lead { color: var(--muted); margin: 0 0 26px; max-width: 62ch; }
+
+/* play */
+.hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 26px; align-items: stretch; }
+.launch { display: flex; flex-direction: column; justify-content: space-between; padding: 26px; border-radius: var(--r-l); background: linear-gradient(160deg, var(--raise), var(--sky-2)); border: 1px solid var(--line); min-height: 280px; }
+.launch .meta { display: grid; gap: 12px; }
+.field { display: grid; gap: 6px; }
+.field > span { color: var(--muted); font-size: 13px; }
+select, input[type=text], input[type=number] { background: var(--sky); border: 1px solid var(--line); border-radius: var(--r-s); padding: 9px 11px; width: 100%; }
+select:hover, input:hover { border-color: #4b4485; }
+.play { position: relative; width: 100%; margin-top: 22px; height: 64px; border: 0; border-radius: 14px; background: var(--star); color: var(--star-ink); font: 700 20px/1 var(--display); cursor: pointer; transition: transform .12s, box-shadow .2s; box-shadow: 0 10px 40px -12px #ffc85799; }
+.play:hover { transform: translateY(-1px); box-shadow: 0 14px 46px -10px #ffc857bb; }
+.play:active { transform: translateY(1px); }
+.play[disabled] { cursor: default; background: var(--raise); color: var(--muted); box-shadow: none; }
+.progress { height: 6px; border-radius: 3px; background: var(--sky); overflow: hidden; margin-top: 12px; }
+.progress i { display: block; height: 100%; width: 0; background: var(--violet); transition: width .25s; }
+.status { min-height: 21px; margin-top: 8px; font-size: 13px; color: var(--muted); }
+.status.err { color: var(--danger); }
+
+/* the mini game screen: shows where lyric lines appear */
+.screen { position: relative; border-radius: var(--r-l); overflow: hidden; border: 1px solid var(--line); aspect-ratio: 16 / 10; align-self: center; width: 100%;
+  background:
+    linear-gradient(#0000 62%, #3d2a1c 62%, #4a3322 70%, #2e2017 100%),
+    linear-gradient(#79a8ff, #b9d4ff 55%, #dfeaff 62%);
+}
+.screen::before { content: ""; position: absolute; left: 0; right: 0; top: 56%; height: 7%; background: repeating-linear-gradient(90deg, #5aa83d 0 14px, #4f9636 14px 28px); }
+.screen .hotbar { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); width: 44%; height: 9%; background: #00000066; border: 2px solid #00000088; }
+.screen .cross { position: absolute; left: 50%; top: 50%; width: 11px; height: 11px; transform: translate(-50%, -50%); background: linear-gradient(#fff, #fff) center/100% 2px no-repeat, linear-gradient(#fff, #fff) center/2px 100% no-repeat; opacity: .85; }
+.lyric { position: absolute; max-width: 60%; padding: 4px 9px; font: 700 13px/1.35 var(--body); color: #fff; text-shadow: 1px 1px 0 #0008; border-radius: 8px; transition: left .65s cubic-bezier(.65,0,.35,1), top .65s cubic-bezier(.65,0,.35,1); white-space: nowrap; overflow: hidden; }
+.lyric.bg { background: #0e0c1e8c; }
+.lyric span { display: inline-block; white-space: pre; opacity: 0; transform: translateY(4px); animation: letter .16s ease-out forwards; }
+@keyframes letter { to { opacity: 1; transform: none; } }
+.np { position: absolute; left: 12px; top: 10px; right: 45%; font-size: 12px; color: #fff; text-shadow: 0 1px 2px #0009; }
+
+.log { margin-top: 26px; background: #0d0b1d; border: 1px solid var(--line); border-radius: var(--r-s); padding: 12px 14px; height: 170px; overflow: auto; font: 12px/1.5 Consolas, "Cascadia Mono", monospace; color: #b8b3dd; white-space: pre-wrap; user-select: text; }
+.log:empty::before { content: "Здесь появится лог игры после запуска."; color: var(--muted); }
+
+/* lists */
+.searchbar { display: flex; gap: 10px; margin-bottom: 18px; }
+.searchbar input { flex: 1; }
+.btn { border: 1px solid var(--line); background: var(--raise); border-radius: var(--r-s); padding: 9px 16px; cursor: pointer; font-weight: 600; white-space: nowrap; }
+.btn:hover { border-color: #5a52a0; }
+.btn.primary { background: var(--violet); border-color: var(--violet); color: #fff; }
+.btn.ghost { background: none; }
+.btn.danger { color: var(--danger); background: none; }
+.btn[disabled] { opacity: .5; cursor: default; }
+.mods { display: grid; gap: 2px; }
+.mod { display: grid; grid-template-columns: 48px 1fr auto; gap: 14px; align-items: center; padding: 12px; border-radius: var(--r-s); }
+.mod:hover { background: #ffffff06; }
+.mod img, .mod .noimg { width: 48px; height: 48px; border-radius: 10px; background: var(--raise); object-fit: cover; }
+.mod b { display: block; }
+.mod span { color: var(--muted); font-size: 13px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.empty { color: var(--muted); padding: 30px 0; }
+
+/* settings forms */
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 26px; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid #ffffff0d; }
+.row > div small { display: block; color: var(--muted); font-size: 13px; }
+.switch { position: relative; width: 42px; height: 24px; flex: none; }
+.switch input { opacity: 0; position: absolute; inset: 0; margin: 0; cursor: pointer; z-index: 1; }
+.switch i { position: absolute; inset: 0; border-radius: 12px; background: var(--line); transition: background .2s; }
+.switch i::after { content: ""; position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--ink); transition: transform .2s; }
+.switch input:checked + i { background: var(--violet); }
+.switch input:checked + i::after { transform: translateX(18px); }
+.switch input:focus-visible + i { outline: 2px solid var(--star); outline-offset: 2px; }
+input[type=range] { width: 100%; accent-color: var(--star); }
+input[type=color] { width: 42px; height: 30px; border: 1px solid var(--line); border-radius: 6px; background: none; padding: 2px; cursor: pointer; }
+.seg { display: inline-flex; flex-wrap: wrap; background: var(--sky); border: 1px solid var(--line); border-radius: var(--r-s); padding: 3px; gap: 3px; }
+.seg button { border: 0; background: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; color: var(--muted); font-weight: 600; }
+.seg button[aria-pressed="true"] { background: var(--raise); color: var(--ink); }
+.val { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 4ch; text-align: right; }
+.fxlayout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 340px); gap: 30px; align-items: start; }
+.sticky { position: sticky; top: 0; }
+.hint { color: var(--muted); font-size: 13px; margin-top: 10px; }
+
+/* accounts */
+.acc { display: flex; align-items: center; gap: 14px; padding: 12px; border-radius: var(--r-s); border: 1px solid transparent; }
+.acc.sel { border-color: var(--line); background: #ffffff06; }
+.acc .grow { flex: 1; }
+.acc small { color: var(--muted); }
+.addrow { display: flex; gap: 10px; margin-top: 14px; }
+.addrow input { flex: 1; }
+
+/* modal + toast */
+.modal { position: fixed; inset: 0; background: #0a0818cc; display: none; place-items: center; z-index: 5; }
+.modal.on { display: grid; }
+.dialog { width: min(440px, 92vw); background: var(--sky-2); border: 1px solid var(--line); border-radius: var(--r-l); padding: 28px; text-align: center; }
+.code { font: 700 34px/1 var(--display); letter-spacing: .14em; margin: 18px 0; color: var(--star); user-select: text; }
+.toast { position: fixed; right: 22px; bottom: 22px; max-width: 420px; padding: 12px 16px; border-radius: var(--r-s); background: var(--raise); border: 1px solid var(--line); box-shadow: 0 12px 40px #0008; opacity: 0; transform: translateY(8px); transition: .2s; pointer-events: none; z-index: 6; }
+.toast.on { opacity: 1; transform: none; }
+.toast.err { border-color: var(--danger); }
+
+@media (max-width: 900px) {
+  .app { grid-template-columns: 64px 1fr; }
+  .nav span, .brand b, .who div { display: none; }
+  .hero, .fxlayout, .grid { grid-template-columns: 1fr; }
+  .sticky { position: static; order: -1; }
+  main { padding: 24px 18px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="rail" aria-label="Разделы">
+    <div class="brand">
+      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><path d="M14 1l3.2 9.8L27 14l-9.8 3.2L14 27l-3.2-9.8L1 14l9.8-3.2z" fill="#ffc857"/><circle cx="14" cy="14" r="3" fill="#15122c"/></svg>
+      <b>Nova</b>
+    </div>
+    <button class="nav" data-page="play" aria-current="page"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z"/></svg><span>Играть</span></button>
+    <button class="nav" data-page="mods"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></svg><span>Моды</span></button>
+    <button class="nav" data-page="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6"/></svg><span>Аккаунты</span></button>
+    <button class="nav" data-page="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg><span>Настройки</span></button>
+    <div class="spacer"></div>
+    <div class="who" id="who"><img class="avatar" id="whoAvatar" alt=""><div><b id="whoName">Нет аккаунта</b><small id="whoType">добавьте в «Аккаунтах»</small></div></div>
+  </nav>
+
+  <main>
+    <!-- PLAY -->
+    <section class="page on" id="page-play">
+      <h1>Nova</h1>
+      <p class="lead">Minecraft на Fabric со своими визуалами. Эффекты ударов, хитмаркер и текст песни настраиваются прямо в игре: нажмите правый Shift.</p>
+      <div class="hero">
+        <div class="launch">
+          <div class="meta">
+            <label class="field"><span>Аккаунт</span><select id="accSelect"></select></label>
+            <label class="field"><span>Версия</span><select id="verSelect"></select></label>
+          </div>
+          <div>
+            <button class="play" id="playBtn">Играть</button>
+            <div class="progress" id="progress" hidden><i id="progressBar"></i></div>
+            <div class="status" id="status" role="status"></div>
+          </div>
+        </div>
+        <div class="screen" id="screenPlay" aria-label="Как текст песни выглядит в игре">
+          <div class="cross"></div><div class="hotbar"></div>
+          <div class="lyric bg" id="pl1" hidden></div>
+          <div class="np" id="np">Включите музыку в Яндекс Музыке — строки песни появятся здесь и в игре.</div>
+        </div>
+      </div>
+      <div class="log" id="log"></div>
+    </section>
+
+    <!-- MODS -->
+    <section class="page" id="page-mods">
+      <h1>Моды</h1>
+      <p class="lead">Поиск по Modrinth среди модов под Fabric для выбранной версии. Зависимости ставятся сами.</p>
+      <form class="searchbar" id="modSearch"><input type="text" id="modQuery" placeholder="Например: sodium, iris, mod menu" aria-label="Поиск модов"><button class="btn primary">Найти</button><button class="btn ghost" type="button" data-open="mods">Папка модов</button></form>
+      <div class="mods" id="modList"><div class="empty">Введите название или нажмите «Найти», чтобы увидеть популярные моды.</div></div>
+      <h2>Установлено</h2>
+      <div class="mods" id="modInstalled"></div>
+    </section>
+
+    <!-- ACCOUNTS -->
+    <section class="page" id="page-accounts">
+      <h1>Аккаунты</h1>
+      <p class="lead">Лицензия Microsoft нужна для серверов с проверкой, офлайн-аккаунт подходит для одиночной игры и серверов без проверки. Аккаунты можно менять и прямо в игре: нажмите на свой ник в правом верхнем углу главного экрана.</p>
+      <div id="accList"></div>
+      <div class="addrow"><button class="btn primary" id="msLogin">Войти через Microsoft</button></div>
+      <form class="addrow" id="offlineForm"><input type="text" id="offName" maxlength="16" placeholder="Ник для офлайн-аккаунта" aria-label="Ник"><button class="btn">Добавить офлайн</button></form>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="page" id="page-settings">
+      <h1>Настройки</h1>
+      <p class="lead">Память, папки, сборка модов и вход Microsoft.</p>
+      <div class="grid">
+        <label class="field"><span>Память для игры <b class="val" id="ramVal"></b></span><input type="range" id="ram" min="1024" step="512"></label>
+        <label class="field"><span>Папка игры</span><input type="text" id="gameDir"></label>
+        <label class="field"><span>Своя Java (необязательно)</span><input type="text" id="javaPath" placeholder="Пусто — лаунчер скачает Java от Mojang"></label>
+        <label class="field"><span>Аргументы JVM</span><input type="text" id="jvmArgs" placeholder="-XX:+UseZGC"></label>
+        <label class="field"><span>Client ID приложения Azure</span><input type="text" id="clientId" placeholder="Нужен для входа Microsoft, см. README"></label>
+      </div>
+      <div class="row"><div><b>Сворачивать лаунчер при запуске</b><small>Лаунчер остаётся открытым: он передаёт текст песни в игру</small></div><label class="switch"><input type="checkbox" id="minimize"><i></i></label></div>
+      <div class="row"><div><b>Fabulously Optimized</b><small id="foNote">Сборка оптимизации: Sodium, Iris, Lithium и другие. Ставится и обновляется при запуске</small></div><label class="switch"><input type="checkbox" id="fo"><i></i></label></div>
+      <div class="row"><div><b>Следить за музыкой</b><small>Читать текущий трек из медиапанели Windows</small></div><label class="switch"><input type="checkbox" id="lyricsSvc"><i></i></label></div>
+      <div class="addrow"><button class="btn primary" id="saveSettings">Сохранить</button><button class="btn ghost" data-open="game">Папка игры</button><button class="btn ghost" data-open="logs">Логи</button></div>
+    </section>
+  </main>
+</div>
+
+<div class="modal" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+  <div class="dialog">
+    <h2 id="loginTitle" style="margin-top:0">Вход через Microsoft</h2>
+    <p class="lead" style="margin:0">Откройте страницу Microsoft и введите этот код:</p>
+    <div class="code" id="loginCode">…</div>
+    <div class="addrow" style="justify-content:center"><button class="btn primary" id="loginOpen">Открыть страницу</button><button class="btn" id="loginCopy">Скопировать код</button></div>
+    <p class="status" id="loginStatus"></p>
+    <button class="btn ghost" id="loginCancel">Отмена</button>
+  </div>
+</div>
+<div class="toast" id="toast" role="alert"></div>
+
+<script>
+"use strict";
+// ---- bridge: window.nativeCall in the app, HTTP in dev mode ----
+const pending = {}; let seq = 1;
+window.__nativeDone = (id, p) => { const r = pending[id]; if (!r) return; delete pending[id]; p.ok ? r.res(p.result) : r.rej(new Error(p.error || "Ошибка")); };
+function call(method, args) {
+  if (typeof window.nativeCall === "function") {
+    return new Promise((res, rej) => { const id = seq++; pending[id] = { res, rej }; window.nativeCall(id, method, args ?? null); });
+  }
+  return fetch("/call", { method: "POST", body: JSON.stringify({ method, args: args ?? null }) })
+    .then(r => r.json()).then(p => { if (!p.ok) throw new Error(p.error); return p.result; });
+}
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+let toastTimer;
+function toast(msg, err) { const t = $("#toast"); t.textContent = msg; t.className = "toast on" + (err ? " err" : ""); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.className = "toast", 4200); }
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+document.addEventListener("error", e => { if (e.target.classList?.contains("avatar")) e.target.style.visibility = "hidden"; }, true);
+
+// ---- navigation ----
+function show(page) {
+  $$(".nav").forEach(n => n.setAttribute("aria-current", n.dataset.page === page ? "page" : "false"));
+  $$(".page").forEach(p => p.classList.toggle("on", p.id === "page-" + page));
+  if (page === "mods") loadInstalled();
+}
+$$(".nav").forEach(n => n.addEventListener("click", () => show(n.dataset.page)));
+$$("[data-open]").forEach(b => b.addEventListener("click", () => call("open.folder", { which: b.dataset.open }).catch(e => toast(e.message, true))));
+
+// ---- state polling ----
+let state = null, settingsLoaded = false;
+async function refresh() {
+  try { state = await call("state"); render(); } catch (e) { /* backend busy */ }
+}
+const STEVE = "https://mc-heads.net/avatar/MHF_Steve/32";
+function avatarFor(acc) { return acc && acc.type === "microsoft" ? `https://mc-heads.net/avatar/${acc.id}/32` : STEVE; }
+function render() {
+  const s = state;
+  // accounts
+  const sel = s.accounts?.find(a => a.id === s.selected);
+  $("#whoName").textContent = sel ? sel.name : "Нет аккаунта";
+  $("#whoType").textContent = sel ? (sel.type === "microsoft" ? "Microsoft" : "Офлайн") : "добавьте в «Аккаунтах»";
+  const av = sel ? avatarFor(sel) : ""; if ($("#whoAvatar").dataset.src !== av) { $("#whoAvatar").dataset.src = av; $("#whoAvatar").style.visibility = ""; if (av) $("#whoAvatar").src = av; $("#whoAvatar").hidden = !av; }
+  const accOpts = (s.accounts || []).map(a => `<option value="${esc(a.id)}" ${a.id === s.selected ? "selected" : ""}>${esc(a.name)} — ${a.type === "microsoft" ? "Microsoft" : "офлайн"}</option>`).join("");
+  if ($("#accSelect").dataset.k !== accOpts) { $("#accSelect").innerHTML = accOpts || "<option>Нет аккаунтов</option>"; $("#accSelect").dataset.k = accOpts; }
+  const accHtml = (s.accounts || []).map(a => `
+    <div class="acc ${a.id === s.selected ? "sel" : ""}"><img class="avatar" src="${esc(avatarFor(a))}" alt="">
+    <div class="grow"><b>${esc(a.name)}</b><br><small>${a.type === "microsoft" ? "Microsoft" : "Офлайн"}</small></div>
+    ${a.id === s.selected ? "<small>Выбран</small>" : `<button class="btn ghost" data-sel="${esc(a.id)}">Выбрать</button>`}
+    <button class="btn danger" data-del="${esc(a.id)}">Удалить</button></div>`).join("") || '<div class="empty">Аккаунтов пока нет.</div>';
+  if ($("#accList").dataset.k !== accHtml) { $("#accList").innerHTML = accHtml; $("#accList").dataset.k = accHtml; }
+
+  // task
+  const t = s.task, busy = t.busy || s.running;
+  $("#playBtn").disabled = busy;
+  $("#playBtn").textContent = s.running ? "Игра запущена" : t.busy ? "Установка…" : "Играть";
+  $("#progress").hidden = !t.busy;
+  $("#progressBar").style.width = t.total ? (100 * t.done / t.total).toFixed(1) + "%" : (t.busy ? "15%" : "0");
+  const st = $("#status");
+  st.classList.toggle("err", !!t.error && !t.busy);
+  st.textContent = t.busy ? `${t.stage}${t.total ? ` — ${t.done} из ${t.total}` : ""}` : (t.error || s.lastExit || (s.running ? "Игра запущена. Лаунчер передаёт текст песни в игру." : ""));
+  const log = $("#log"), atBottom = log.scrollTop + log.clientHeight >= log.scrollHeight - 8;
+  const text = (s.gameLog || []).join("\n");
+  if (log.textContent !== text) { log.textContent = text; if (atBottom) log.scrollTop = log.scrollHeight; }
+
+  // login modal
+  const L = s.login;
+  if (L.active) { $("#loginModal").classList.add("on"); $("#loginCode").textContent = L.userCode; $("#loginStatus").textContent = L.status; }
+  else if ($("#loginModal").classList.contains("on")) {
+    $("#loginModal").classList.remove("on");
+    if (L.error) toast(L.error, true); else if (L.status) toast(L.status);
+  }
+
+  // settings form (once)
+  if (!settingsLoaded) {
+    const c = s.settings; settingsLoaded = true;
+    $("#ram").max = Math.max(2048, Math.floor((c.maxMemoryMb - 1024) / 512) * 512);
+    $("#ram").value = c.memoryMb; $("#ramVal").textContent = (c.memoryMb / 1024).toFixed(1) + " ГБ";
+    $("#gameDir").value = c.gameDir; $("#javaPath").value = c.javaPath; $("#jvmArgs").value = c.jvmArgs; $("#clientId").value = c.msClientId;
+    $("#minimize").checked = c.minimizeOnRun; $("#lyricsSvc").checked = c.lyrics; $("#fo").checked = c.fabulouslyOptimized;
+    loadVersions(c.version);
+  }
+  if (s.pack) $("#foNote").textContent = "Установлено: " + s.pack;
+
+  renderLyrics(s.lyrics);
+}
+
+// ---- lyrics preview: same idea as in the game, one line typed letter by letter at a random spot ----
+let shownLine = null;
+function renderLyrics(L) {
+  const np = $("#np"), el = $("#pl1");
+  if (!L || L.status === "idle") np.textContent = "Включите музыку в Яндекс Музыке: текущая строка появится здесь и в игре.";
+  else np.textContent = `♪ ${L.artist ? L.artist + " — " : ""}${L.title}` + (L.status === "searching" ? " (ищу текст…)" : L.status === "not_found" ? " (синхронного текста нет)" : "");
+  const line = L && L.status === "ok" && L.index >= 0 ? (L.line || "♪") : "";
+  const key = line ? L.title + "|" + L.index : "";
+  if (key === shownLine) return;
+  shownLine = key;
+  if (!line) { el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = [...line].map((ch, i) => `<span style="animation-delay:${i * 40}ms">${esc(ch)}</span>`).join("");
+  el.style.left = (4 + Math.random() * 46) + "%";
+  el.style.top = (8 + Math.random() * 70) + "%";
+}
+
+// ---- play ----
+async function loadVersions(current) {
+  const fill = list => $("#verSelect").innerHTML = list.map(v => `<option ${v === current ? "selected" : ""}>${esc(v)}</option>`).join("");
+  fill([current]);
+  try { const list = await call("versions"); if (!list.includes(current)) list.unshift(current); fill(list); } catch (e) {}
+}
+$("#verSelect").addEventListener("change", e => {
+  call("settings.save", { version: e.target.value }).then(() => {
+    if (state && e.target.value !== state.modGame) toast(`Мод NovaFX сделан под ${state.modGame}: на этой версии визуалов не будет.`);
+  });
+});
+$("#accSelect").addEventListener("change", e => call("account.select", { id: e.target.value }).then(refresh));
+$("#playBtn").addEventListener("click", () => call("game.launch").then(refresh).catch(e => toast(e.message, true)));
+
+// ---- mods ----
+function modRow(h) {
+  return `<div class="mod">${h.icon_url ? `<img src="${esc(h.icon_url)}" alt="" loading="lazy">` : '<div class="noimg"></div>'}
+    <div><b>${esc(h.title)}</b><span>${esc(h.description)}</span></div>
+    ${h.installed ? `<button class="btn danger" data-rm="${esc(h.project_id)}">Удалить</button>` : `<button class="btn" data-inst="${esc(h.project_id)}">Установить</button>`}</div>`;
+}
+let lastHits = [];
+async function search(q) {
+  $("#modList").innerHTML = '<div class="empty">Ищу на Modrinth…</div>';
+  try {
+    lastHits = await call("mods.search", { query: q });
+    $("#modList").innerHTML = lastHits.map(modRow).join("") || '<div class="empty">Ничего не нашлось под Fabric для этой версии. Попробуйте другое название.</div>';
+  } catch (e) { $("#modList").innerHTML = `<div class="empty">Modrinth недоступен: ${esc(e.message)}</div>`; }
+}
+$("#modSearch").addEventListener("submit", e => { e.preventDefault(); search($("#modQuery").value); });
+$("#modList").addEventListener("click", async e => {
+  const inst = e.target.closest("[data-inst]"), rm = e.target.closest("[data-rm]");
+  const btn = inst || rm; if (!btn) return;
+  btn.disabled = true; btn.textContent = inst ? "Ставлю…" : "Удаляю…";
+  try {
+    await call(inst ? "mods.install" : "mods.remove", { id: btn.dataset.inst || btn.dataset.rm });
+    const h = lastHits.find(x => x.project_id === (btn.dataset.inst || btn.dataset.rm)); if (h) h.installed = !!inst;
+    btn.outerHTML = modRow(h).match(/<button[\s\S]*<\/button>/)[0];
+    toast(inst ? "Мод установлен" : "Мод удалён"); loadInstalled();
+  } catch (err) { toast(err.message, true); btn.disabled = false; btn.textContent = inst ? "Установить" : "Удалить"; }
+});
+async function loadInstalled() {
+  try {
+    const jars = await call("mods.list");
+    $("#modInstalled").innerHTML = jars.length ? jars.map(j => `<div class="mod"><div class="noimg"></div><div><b>${esc(j)}</b></div><span></span></div>`).join("") : '<div class="empty">Папка модов пуста. Fabric API и NovaFX поставятся при первом запуске.</div>';
+  } catch (e) {}
+}
+
+// ---- accounts ----
+$("#accList").addEventListener("click", e => {
+  const s = e.target.closest("[data-sel]"), d = e.target.closest("[data-del]");
+  if (s) call("account.select", { id: s.dataset.sel }).then(refresh);
+  if (d) call("account.remove", { id: d.dataset.del }).then(refresh);
+});
+$("#offlineForm").addEventListener("submit", e => {
+  e.preventDefault();
+  call("account.offline", { name: $("#offName").value }).then(() => { $("#offName").value = ""; toast("Аккаунт добавлен"); refresh(); }).catch(err => toast(err.message, true));
+});
+$("#msLogin").addEventListener("click", () => call("ms.start").then(refresh).catch(e => toast(e.message, true)));
+$("#loginOpen").addEventListener("click", () => state?.login?.uri && call("open.url", { url: state.login.uri }));
+$("#loginCopy").addEventListener("click", () => navigator.clipboard?.writeText($("#loginCode").textContent).then(() => toast("Код скопирован")));
+$("#loginCancel").addEventListener("click", () => call("ms.cancel").then(refresh));
+
+// ---- settings ----
+$("#ram").addEventListener("input", e => $("#ramVal").textContent = (e.target.value / 1024).toFixed(1) + " ГБ");
+$("#saveSettings").addEventListener("click", () => call("settings.save", {
+  memoryMb: Number($("#ram").value), gameDir: $("#gameDir").value, javaPath: $("#javaPath").value,
+  jvmArgs: $("#jvmArgs").value, msClientId: $("#clientId").value, minimizeOnRun: $("#minimize").checked, lyrics: $("#lyricsSvc").checked, fabulouslyOptimized: $("#fo").checked,
+}).then(() => toast("Настройки сохранены")).catch(e => toast(e.message, true)));
+
+// ---- boot ----
+refresh();
+setInterval(refresh, 400);
+</script>
+</body>
+</html>
